@@ -4,6 +4,7 @@ on:
   schedule:
     # every work day at 00:00 UTC
     - cron: 0 0 * * 1-5
+  workflow_dispatch:
 
 env:
   IMAGE_REGISTRY: ghcr.io
@@ -12,7 +13,7 @@ env:
 
 jobs:
   prepare:
-    if: github.repository_owner == 'Dynatrace'
+    if: github.repository_owner == 'Incredible-O'
     permissions:
       contents: read
     name: Prepare properties
@@ -29,7 +30,7 @@ jobs:
       version_without_prefix: ${{ steps.prep.outputs.docker_image_tag_without_prefix }}
 
   build-push:
-    if: github.repository_owner == 'Dynatrace'
+    if: github.repository_owner == 'Incredible-O'
     name: Build images
     needs: [prepare]
     runs-on: ubuntu-24.04
@@ -52,7 +53,7 @@ jobs:
       digest: ${{ steps.build-image.outputs.digest }}
 
   signing:
-    if: github.repository_owner == 'Dynatrace'
+    if: github.repository_owner == 'Incredible-O'
     name: Sign the image index/manifests + Add SBOM
     environment: Release
     needs: [prepare, build-push]
@@ -93,7 +94,7 @@ jobs:
           signing-password: ${{ secrets.COSIGN_PASSWORD }}
 
   release:
-    if: github.repository_owner == 'Dynatrace'
+    if: github.repository_owner == 'Incredible-O'
     name: Create release
     needs: [prepare, build-push, signing]
     environment: Release
@@ -134,3 +135,4 @@ jobs:
           version: ${{ needs.prepare.outputs.version }}
           cosign-private-key: ${{ secrets.COSIGN_PRIVATE_KEY }}
           cosign-password: ${{ secrets.COSIGN_PASSWORD }}
+          registry-namespace: "incredible-o"

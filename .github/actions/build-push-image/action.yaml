@@ -50,6 +50,8 @@ runs:
       uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
       id: meta
       env:
+          CUSTOM_EVENT_NAME: "schedule"
+          CUSTOM_REF_NAME: "main"
           DOCKER_METADATA_ANNOTATIONS_LEVELS: ${{ contains(inputs.platforms, ',') && 'manifest,index' || 'manifest' }}
       with:
         images: ${{ inputs.images }}
@@ -60,26 +62,26 @@ runs:
           # default retention policy
           quay.expires-after=10d
           # releases and snapshots of the main branch should never expire
-          ${{ ((github.ref_type == 'tag' && startsWith(github.ref_name, 'release-')) || github.ref_name == 'main') && 'quay.expires-after=' }}
+          ${{ ((github.ref_type == 'tag' && startsWith(env.CUSTOM_REF_NAME, 'release-')) || env.CUSTOM_REF_NAME == 'main') && 'quay.expires-after=' }}
           # retention policy for nightly builds
-          ${{ github.event_name == 'schedule' && 'quay.expires-after=14d' }}
-          vcs-ref=${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ${{ env.CUSTOM_EVENT_NAME == 'schedule' && 'quay.expires-after=14d' }}
+          vcs-ref=${{ env.CUSTOM_EVENT_NAME == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           build-date=${{ steps.set-build-date.outputs.date }}
         tags: |
           # PRs
-          type=raw,value=snapshot-${{ github.head_ref }},enable=${{ github.event_name == 'pull_request' }}
+          type=raw,value=snapshot-${{ github.head_ref }},enable=${{ env.CUSTOM_EVENT_NAME == 'pull_request' }}
           # main branches (not including nightly builds)
-          type=raw,value=snapshot,enable=${{ github.ref_name == 'main' && github.event_name != 'schedule' }}
+          type=raw,value=snapshot,enable=${{ env.CUSTOM_REF_NAME == 'main' && env.CUSTOM_EVENT_NAME != 'schedule' }}
           # nightly builds
-          type=raw,value=nightly-${{ steps.set-build-date.outputs.date }},enable=${{ github.event_name == 'schedule' }}
-          type=raw,value=nightly,enable=${{ github.event_name == 'schedule' }}
+          type=raw,value=nightly-${{ steps.set-build-date.outputs.date }},enable=${{ env.CUSTOM_EVENT_NAME == 'schedule' }}
+          type=raw,value=nightly,enable=${{ env.CUSTOM_EVENT_NAME == 'schedule' }}
           # tags
-          type=raw,value=${{ github.ref_name }},enable=${{ github.ref_type == 'tag' }}
+          type=raw,value=${{ env.CUSTOM_REF_NAME }},enable=${{ github.ref_type == 'tag' }}
           # all other branches including 'release-*' branches except 'main'
-          type=raw,value=${{ steps.prep.outputs.docker_image_tag_without_prefix }},enable=${{ !(github.event_name == 'pull_request' || github.ref_name == 'main' || github.ref_type == 'tag') }},priority=0
+          type=raw,value=${{ steps.prep.outputs.docker_image_tag_without_prefix }},enable=${{ !(env.CUSTOM_EVENT_NAME == 'pull_request' || env.CUSTOM_REF_NAME == 'main' || github.ref_type == 'tag') }},priority=0
         annotations: |
           ${{ inputs.annotation }}
-          version=${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          version=${{ env.CUSTOM_EVENT_NAME == 'pull_request' && github.head_ref || env.CUSTOM_REF_NAME }}
     - name: Build target
       id: build-target
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
