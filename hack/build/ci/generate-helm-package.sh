@@ -1,8 +1,19 @@
 #!/bin/bash
 
+if [ -z "$3" ]
+then
+  echo "Usage: $0 <secring> <passphrase> <output-dir> <version_without_prefix>"
+  exit 1
+fi
+
+readonly secring="${1}"
+readonly passphrase="${2}"
+readonly output_dir="${3}"
+readonly version_without_prefix="${4}"
+
 mkdir -p ~/.gnupg
-echo "${SECRING}" | base64 -d >~/.gnupg/secring.gpg
-echo "${PASSPHRASE}" >~/.gnupg/passphrase
+echo "${secring}" | base64 -d >~/.gnupg/secring.gpg
+echo "${passphrase}" >~/.gnupg/passphrase
 
 cleanup() {
     rm -f ~/.gnupg/secring.gpg
@@ -13,9 +24,9 @@ trap 'cleanup' ERR
 
 helm package \
     "./config/helm/chart/default/" \
-    -d "${OUTPUT_DIR}" \
-    --app-version "${VERSION_WITHOUT_PREFIX}" \
-    --version "${VERSION_WITHOUT_PREFIX}" \
+    -d "${output_dir}" \
+    --app-version "${version_without_prefix}" \
+    --version "${version_without_prefix}" \
     --sign \
     --key "Dynatrace LLC" \
     --keyring ~/.gnupg/secring.gpg \
